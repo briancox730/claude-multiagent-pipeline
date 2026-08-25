@@ -1,0 +1,12 @@
+{
+  "id": "auth-refactor",
+  "kind": "code-change",
+  "title": "Add a token bucket rate limiter to the login route",
+  "context": "Service exposes POST /login. We are adding a per-IP rate limiter to slow credential-stuffing. Node/Express. The limiter is an in-memory Map keyed by IP. Reviewers should assume a single process for now; a Redis-backed version is a later change.",
+  "diff": "diff --git a/src/rate-limit.js b/src/rate-limit.js\nnew file mode 100644\n--- /dev/null\n+++ b/src/rate-limit.js\n@@\n+const WINDOW_MS = 60_000\n+const MAX_HITS = 5\n+const buckets = new Map() // ip -> { count, windowStart }\n+\n+function allow(ip) {\n+  const now = Date.now()\n+  let b = buckets.get(ip)\n+  if (!b) {\n+    b = { count: 0, windowStart: now }\n+    buckets.set(ip, b)\n+  }\n+  if (now - b.windowStart > WINDOW_MS) {\n+    b.count = 0\n+    b.windowStart = now\n+  }\n+  b.count += 1\n+  return b.count <= MAX_HITS\n+}\n+\n+module.exports = { allow }\n\ndiff --git a/src/login.js b/src/login.js\n--- a/src/login.js\n+++ b/src/login.js\n@@\n const { verifyPassword } = require('./auth')\n+const { allow } = require('./rate-limit')\n \n async function login(req, res) {\n+  const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress\n+  if (!allow(ip)) {\n+    return res.status(429).send('Too many attempts')\n+  }\n   const { user, password } = req.body\n   const ok = await verifyPassword(user, password)\n   if (ok) return res.status(200).send('ok')\n   return res.status(401).send('bad credentials')\n }\n\n module.exports = { login }\n",
+  "notes_for_reviewer": [
+    "The buckets Map is never pruned. Consider whether entries accumulate for every distinct IP.",
+    "x-forwarded-for can be a comma-separated list when there are multiple proxies.",
+    "No test file is included in this change."
+  ]
+}

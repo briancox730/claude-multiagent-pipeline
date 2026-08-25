@@ -1,0 +1,11 @@
+{
+  "id": "cache-strategy",
+  "kind": "research-context",
+  "question": "For a read-heavy product catalog API, should we cache at the HTTP layer (CDN / reverse proxy) or in the application layer (in-process or shared cache)? Assume 50k req/s, 95% reads, catalog updated a few times an hour.",
+  "background": "The catalog is mostly static within an hour but a price or availability change must be visible within about a minute. Responses are JSON, 2-20 KB. The service runs behind a CDN already used for static assets. There is a shared cache cluster available. Team is small and wants low operational load.",
+  "constraints": [
+    "Stale price shown to a user for more than ~60s is a correctness problem, not just a UX one.",
+    "The team does not want to run a new stateful service if an existing layer can do the job.",
+    "Cost of the CDN is per-request plus egress; the shared cache cluster is already paid for."
+  ]
+}

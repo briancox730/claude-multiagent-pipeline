@@ -1,0 +1,15 @@
+{
+  "name": "claude-multiagent-pipeline",
+  "version": "1.0.0",
+  "description": "Patterns and a delegation methodology for orchestrating Claude Code agent workflows",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  },
+  "license": "MIT",
+  "author": "Brian Cox",
+  "engines": {
+    "node": ">=20"
+  }
+}
